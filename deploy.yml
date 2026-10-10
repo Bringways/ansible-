@@ -1,0 +1,39 @@
+
+---
+- name: Deploy website using Jenkins and Ansible
+  hosts: webservers
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Install Nginx
+      ansible.builtin.yum:
+        name: nginx
+        state: present
+
+    - name: Ensure Nginx is running and enabled
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Copy index.html to web server
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/index.html"
+        dest: /usr/share/nginx/html/index.html
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Verify Nginx service
+      ansible.builtin.command: systemctl is-active nginx
+      register: nginx_status
+      changed_when: false
+
+    - name: Verify deployed HTML
+      ansible.builtin.command: grep -q "Deployment Successful" /usr/share/nginx/html/index.html
+      changed_when: false
+
+    - name: Display deployment status
+      ansible.builtin.debug:
+        msg: "Website deployed successfully on {{ inventory_hostname }}. Nginx: {{ nginx_status.stdout }}"
